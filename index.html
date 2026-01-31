@@ -1106,10 +1106,6 @@ window.history.pushState({}, '');
     clearInterval(timer);
     timer=setInterval(tick,250);
     updateUI();save();
-    // Запустить нативный таймер iPhone через Shortcuts
-    if(mode==='work'){
-      try{window.location.href='shortcuts://run-shortcut?name=%D0%9F%D0%BE%D0%BC%D0%BE%D0%B4%D0%BE%D1%80%D0%BE';}catch(e){}
-    }
   }
 
   function stopTimer(){

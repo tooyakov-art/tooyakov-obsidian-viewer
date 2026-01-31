@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>WFWorkflowMinimumClientVersionString</key>
+  <string>900</string>
+  <key>WFWorkflowMinimumClientVersion</key>
+  <integer>900</integer>
+  <key>WFWorkflowIcon</key>
+  <dict>
+    <key>WFWorkflowIconStartColor</key>
+    <integer>4282601983</integer>
+    <key>WFWorkflowIconGlyphNumber</key>
+    <integer>59534</integer>
+  </dict>
+  <key>WFWorkflowActions</key>
+  <array>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.notification</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFNotificationActionBody</key>
+        <string>Фокус! 25 минут работы</string>
+        <key>WFNotificationActionTitle</key>
+        <string>🍅 Помодоро #1</string>
+        <key>WFNotificationActionSound</key>
+        <true/>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.delay</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFDelayTime</key>
+        <integer>1500</integer>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.notification</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFNotificationActionBody</key>
+        <string>5 минут отдыха. Встань, попей воды.</string>
+        <key>WFNotificationActionTitle</key>
+        <string>☕ Перерыв</string>
+        <key>WFNotificationActionSound</key>
+        <true/>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.delay</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFDelayTime</key>
+        <integer>300</integer>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.notification</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFNotificationActionBody</key>
+        <string>Фокус! 25 минут работы</string>
+        <key>WFNotificationActionTitle</key>
+        <string>🍅 Помодоро #2</string>
+        <key>WFNotificationActionSound</key>
+        <true/>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.delay</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFDelayTime</key>
+        <integer>1500</integer>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.notification</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFNotificationActionBody</key>
+        <string>5 минут отдыха. Встань, попей воды.</string>
+        <key>WFNotificationActionTitle</key>
+        <string>☕ Перерыв</string>
+        <key>WFNotificationActionSound</key>
+        <true/>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.delay</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFDelayTime</key>
+        <integer>300</integer>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.notification</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFNotificationActionBody</key>
+        <string>Фокус! 25 минут работы</string>
+        <key>WFNotificationActionTitle</key>
+        <string>🍅 Помодоро #3</string>
+        <key>WFNotificationActionSound</key>
+        <true/>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.delay</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFDelayTime</key>
+        <integer>1500</integer>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.notification</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFNotificationActionBody</key>
+        <string>5 минут отдыха. Встань, попей воды.</string>
+        <key>WFNotificationActionTitle</key>
+        <string>☕ Перерыв</string>
+        <key>WFNotificationActionSound</key>
+        <true/>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.delay</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFDelayTime</key>
+        <integer>300</integer>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.notification</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFNotificationActionBody</key>
+        <string>Фокус! 25 минут работы</string>
+        <key>WFNotificationActionTitle</key>
+        <string>🍅 Помодоро #4</string>
+        <key>WFNotificationActionSound</key>
+        <true/>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.delay</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFDelayTime</key>
+        <integer>1500</integer>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.notification</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFNotificationActionBody</key>
+        <string>Длинный перерыв 20 минут. Ты молодец!</string>
+        <key>WFNotificationActionTitle</key>
+        <string>🎉 4 помодоро сделано!</string>
+        <key>WFNotificationActionSound</key>
+        <true/>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.delay</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFDelayTime</key>
+        <integer>1200</integer>
+      </dict>
+    </dict>
+    <dict>
+      <key>WFWorkflowActionIdentifier</key>
+      <string>is.workflow.actions.notification</string>
+      <key>WFWorkflowActionParameters</key>
+      <dict>
+        <key>WFNotificationActionBody</key>
+        <string>Полный цикл! Отличная работа.</string>
+        <key>WFNotificationActionTitle</key>
+        <string>✅ Сессия завершена!</string>
+        <key>WFNotificationActionSound</key>
+        <true/>
+      </dict>
+    </dict>
+  </array>
+</dict>
+</plist>

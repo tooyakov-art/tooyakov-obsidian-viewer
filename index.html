@@ -230,6 +230,21 @@ html,body{background:var(--bg);color:var(--text);font-family:-apple-system,Blink
   </div>
 </div>
 
+<!-- ===== COUNCIL OVERLAY ===== -->
+<div id="council-overlay" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overflow-y:auto;padding:20px">
+  <div style="max-width:480px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:20px;font-weight:700">🏛️ Совет Наставников</div>
+      <button onclick="closeCouncil()" style="background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer;padding:8px">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Опиши ситуацию → 6 менторов дадут совет каждый со своей стороны</div>
+    <div id="mentorGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px"></div>
+    <textarea id="councilInput" placeholder="Опиши ситуацию или вопрос..." style="width:100%;min-height:80px;padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:inherit;resize:vertical"></textarea>
+    <button onclick="askCouncil()" style="width:100%;margin-top:10px;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">⚡ Спросить Совет</button>
+    <div style="margin-top:10px;font-size:11px;color:var(--text2);text-align:center">Откроет Telegram → Molt ответит от лица каждого наставника</div>
+  </div>
+</div>
+
 <!-- ===== DETAIL VIEW ===== -->
 <div id="detail-view">
   <div class="detail-header">
@@ -256,6 +271,10 @@ html,body{background:var(--bg);color:var(--text);font-family:-apple-system,Blink
   <div class="tab" onclick="switchTab('control')">
     <div class="t-icon">⚙️</div>
     <div class="t-label">Контроль</div>
+  </div>
+  <div class="tab" onclick="openCouncil()">
+    <div class="t-icon">🏛️</div>
+    <div class="t-label">Совет</div>
   </div>
 </nav>
 
@@ -561,6 +580,42 @@ function renderHabits(){
 }
 
 window.habitCheck=function(i){const t=todayStr();if(!habits[i].log)habits[i].log={};if(habits[i].log[t])delete habits[i].log[t];else habits[i].log[t]=1;saveHabits();renderHabits();};
+
+// ============================================================
+// COUNCIL OF MENTORS
+// ============================================================
+const MENTORS=[
+  {name:'Трамп',emoji:'🏛️',area:'Сделки, бренд',color:'#ef4444',style:'Думай масштабно. Бренд — это всё'},
+  {name:'Роберт Грин',emoji:'📖',area:'Стратегия, власть',color:'#8b5cf6',style:'Никогда не показывай слабость'},
+  {name:'Илон Маск',emoji:'🚀',area:'Технологии, масштаб',color:'#3b82f6',style:'Первые принципы. Делай невозможное'},
+  {name:'Навал',emoji:'💰',area:'Доход, свобода',color:'#10b981',style:'Не продавай время. Строй рычаги'},
+  {name:'Сунь-Цзы',emoji:'⚔️',area:'Тактика, война',color:'#f59e0b',style:'Победи без боя. Знай врага'},
+  {name:'Маргулан',emoji:'🧘',area:'Мудрость, баланс',color:'#ec4899',style:'1% в день. 8 ресурсов. Кайдзен'},
+];
+
+function renderMentors(){
+  document.getElementById('mentorGrid').innerHTML=MENTORS.map(m=>`
+    <div style="text-align:center;padding:10px 4px;background:${m.color}15;border:1px solid ${m.color}33;border-radius:10px">
+      <div style="font-size:28px;margin-bottom:4px">${m.emoji}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text)">${m.name}</div>
+      <div style="font-size:9px;color:var(--text2);margin-top:2px">${m.area}</div>
+    </div>
+  `).join('');
+}
+
+function openCouncil(){
+  document.getElementById('council-overlay').style.display='block';
+  renderMentors();
+  document.getElementById('councilInput').focus();
+}
+function closeCouncil(){document.getElementById('council-overlay').style.display='none';}
+function askCouncil(){
+  const q=document.getElementById('councilInput').value.trim();
+  if(!q)return;
+  const text=encodeURIComponent('совет: '+q);
+  window.open('https://t.me/share/url?url=&text='+text,'_blank');
+  closeCouncil();
+}
 
 // ============================================================
 // CONTROL (iPhone Shortcuts)

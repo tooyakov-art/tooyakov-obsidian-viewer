@@ -194,10 +194,6 @@ html,body{background:var(--bg);color:var(--text);font-family:-apple-system,Blink
     <div class="page-title">✅ Задачи</div>
     <div class="page-count" id="taskCount"></div>
   </div>
-  <div class="task-add">
-    <input type="text" class="task-input" id="taskInput" placeholder="Новая задача..." autocomplete="off">
-    <button class="task-add-btn" onclick="taskAdd()">+</button>
-  </div>
   <div id="taskList" class="task-list"></div>
 </div>
 
@@ -214,10 +210,6 @@ html,body{background:var(--bg);color:var(--text);font-family:-apple-system,Blink
     </div>
   </div>
   <div id="habitList" class="habit-list"></div>
-  <div class="habit-add">
-    <input type="text" class="habit-add-input" id="habitInput" placeholder="Новая привычка..." maxlength="30" autocomplete="off">
-    <button class="habit-add-btn" onclick="habitAdd()">+</button>
-  </div>
 </div>
 
 <!-- ===== DETAIL VIEW ===== -->
@@ -429,13 +421,28 @@ function switchTab(tab){
 }
 
 // ============================================================
-// TASKS
+// TASKS (managed by Molt, not user)
 // ============================================================
+const USER_DATA = {"habits":[{"name":"Помодоро сессия","icon":"🍅"},{"name":"Тренировка","icon":"💪"},{"name":"Английский (VR чат)","icon":"🇬🇧"},{"name":"Чтение 30 мин","icon":"📖"},{"name":"Медитация 5 мин","icon":"🧘"},{"name":"Вода 2л","icon":"💧"},{"name":"Режим сна","icon":"😴"}],"tasks":[{"text":"Настроить платформу Карта власти","priority":"high"},{"text":"Определить 3 цели на февраль","priority":"high"},{"text":"Выбрать первый навык для монетизации","priority":"high"},{"text":"Сделать первый помодоро цикл (4×25 мин)","priority":"medium"},{"text":"Прочитать 00 Великая стратегия","priority":"medium"},{"text":"Попробовать VR чат для английского","priority":"medium"},{"text":"Записать утреннюю рутину","priority":"low"}]};
 let tasks=[];
-const TASKS_KEY='tasks_v1';
+const TASKS_KEY='tasks_v2';
 
-function loadTasks(){try{const r=localStorage.getItem(TASKS_KEY);if(r)tasks=JSON.parse(r);}catch(e){}if(!Array.isArray(tasks))tasks=[];}
-function saveTasks(){try{localStorage.setItem(TASKS_KEY,JSON.stringify(tasks));}catch(e){}}
+function loadTasks(){
+  // Merge: data.json tasks + localStorage completion state
+  const defaults=(USER_DATA&&USER_DATA.tasks)||[];
+  let saved={};
+  try{const r=localStorage.getItem(TASKS_KEY);if(r)saved=JSON.parse(r);}catch(e){}
+
+  tasks=defaults.map(t=>{
+    const key=t.text;
+    return{text:t.text,priority:t.priority||'medium',done:!!saved[key]};
+  });
+}
+function saveTasks(){
+  const state={};
+  tasks.forEach(t=>{if(t.done)state[t.text]=true;});
+  try{localStorage.setItem(TASKS_KEY,JSON.stringify(state));}catch(e){}
+}
 
 function renderTasks(){
   const active=tasks.filter(t=>!t.done);
@@ -444,31 +451,40 @@ function renderTasks(){
   let html='';
   if(active.length){active.forEach((t,i)=>{const idx=tasks.indexOf(t);html+=taskHTML(t,idx);});}
   if(done.length){html+=`<div class="task-section-label">✓ Выполнено (${done.length})</div>`;done.forEach(t=>{const idx=tasks.indexOf(t);html+=taskHTML(t,idx);});}
-  if(!tasks.length)html='<div class="empty"><div class="empty-icon">✅</div>Нет задач<br><span style="color:var(--text2);font-size:13px">Добавь первую задачу</span></div>';
+  if(!tasks.length)html='<div class="empty"><div class="empty-icon">✅</div>Задач нет<br><span style="color:var(--text2);font-size:13px">Molt добавит когда нужно</span></div>';
   document.getElementById('taskList').innerHTML=html;
 }
 
 function taskHTML(t,i){
-  return`<div class="task-item${t.done?' done':''}" onclick="taskToggle(${i})"><div class="task-check">${t.done?'✓':''}</div><div class="task-text">${escapeHtml(t.text)}</div><button class="task-del" onclick="event.stopPropagation();taskDel(${i})">✕</button></div>`;
+  const prio=t.priority==='high'?'🔴':t.priority==='medium'?'🟡':'⚪';
+  return`<div class="task-item${t.done?' done':''}" onclick="taskToggle(${i})"><div class="task-check">${t.done?'✓':''}</div><div class="task-text">${prio} ${escapeHtml(t.text)}</div></div>`;
 }
 
-window.taskAdd=function(){
-  const inp=document.getElementById('taskInput');const text=inp.value.trim();if(!text)return;
-  tasks.unshift({text,done:false,created:Date.now()});inp.value='';saveTasks();renderTasks();
-};
-document.getElementById('taskInput').addEventListener('keydown',e=>{if(e.key==='Enter')taskAdd();});
-
 window.taskToggle=function(i){tasks[i].done=!tasks[i].done;saveTasks();renderTasks();};
-window.taskDel=function(i){tasks.splice(i,1);saveTasks();renderTasks();};
 
 // ============================================================
-// HABITS
+// HABITS (managed by Molt, not user)
 // ============================================================
 let habits=[];
-const HABITS_KEY='habits_v1';
+const HABITS_KEY='habits_v2';
 
-function loadHabits(){try{const r=localStorage.getItem(HABITS_KEY);if(r)habits=JSON.parse(r);}catch(e){}if(!Array.isArray(habits))habits=[];}
-function saveHabits(){try{localStorage.setItem(HABITS_KEY,JSON.stringify(habits));}catch(e){}}
+function loadHabits(){
+  // Habits defined in data.json, logs in localStorage
+  const defaults=(USER_DATA&&USER_DATA.habits)||[];
+  let logs={};
+  try{const r=localStorage.getItem(HABITS_KEY);if(r)logs=JSON.parse(r);}catch(e){}
+
+  habits=defaults.map(h=>({
+    name:h.name,
+    icon:h.icon||'📌',
+    log:logs[h.name]||{}
+  }));
+}
+function saveHabits(){
+  const logs={};
+  habits.forEach(h=>{if(Object.keys(h.log).length)logs[h.name]=h.log;});
+  try{localStorage.setItem(HABITS_KEY,JSON.stringify(logs));}catch(e){}
+}
 
 function todayStr(){return new Date().toISOString().slice(0,10);}
 function last7Days(){const r=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);r.push(d.toISOString().slice(0,10));}return r;}
@@ -494,7 +510,7 @@ function renderHabits(){
     let dots='';days7.forEach(d=>{dots+=`<div class="habit-dot${h.log[d]?' done':''}"></div>`;});
     const algo=findAlgo(h.name);
     const link=algo?`<span class="habit-algo-link" onclick="event.stopPropagation();openFile('${ea(algo.section)}','${ea(algo.name)}')">→ алгоритм</span>`:'';
-    html+=`<div class="habit-item${isDone?' done':''}" onclick="habitCheck(${i})"><div class="habit-check">${isDone?'✓':''}</div><div class="habit-info"><div class="habit-name">${escapeHtml(h.name)} ${link}</div><div class="habit-meta"><div class="habit-streak">${s>0?'🔥 <strong>'+s+'</strong> дн':'—'}</div><div class="habit-dots">${dots}</div></div></div><button class="habit-del" onclick="event.stopPropagation();habitDel(${i})">✕</button></div>`;
+    html+=`<div class="habit-item${isDone?' done':''}" onclick="habitCheck(${i})"><div class="habit-check">${isDone?'✓':''}</div><div class="habit-info"><div class="habit-name">${h.icon||'📌'} ${escapeHtml(h.name)} ${link}</div><div class="habit-meta"><div class="habit-streak">${s>0?'🔥 <strong>'+s+'</strong> дн':'—'}</div><div class="habit-dots">${dots}</div></div></div></div>`;
   });
   if(!habits.length)html='<div class="empty"><div class="empty-icon">📋</div>Нет привычек<br><span style="color:var(--text2);font-size:13px">Добавь первую привычку</span></div>';
   document.getElementById('habitList').innerHTML=html;
@@ -506,9 +522,6 @@ function renderHabits(){
 }
 
 window.habitCheck=function(i){const t=todayStr();if(!habits[i].log)habits[i].log={};if(habits[i].log[t])delete habits[i].log[t];else habits[i].log[t]=1;saveHabits();renderHabits();};
-window.habitAdd=function(){const inp=document.getElementById('habitInput');const name=inp.value.trim();if(!name)return;habits.push({name,log:{}});inp.value='';saveHabits();renderHabits();};
-document.getElementById('habitInput').addEventListener('keydown',e=>{if(e.key==='Enter')habitAdd();});
-window.habitDel=function(i){habits.splice(i,1);saveHabits();renderHabits();};
 
 // ============================================================
 // POMODORO

@@ -1027,6 +1027,12 @@ window.history.pushState({}, '');
     }catch(e){}
   }
 
+  const origTitle='Карта власти';
+  // Запросить разрешение на уведомления
+  if('Notification' in window && Notification.permission==='default'){
+    document.addEventListener('click',function ask(){Notification.requestPermission();document.removeEventListener('click',ask);},{once:true});
+  }
+
   function fmt(s){s=Math.max(0,s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 
   function renderDots(){
@@ -1039,9 +1045,14 @@ window.history.pushState({}, '');
     const pct=1-secs/total;
     ring.style.strokeDashoffset=C-pct*C;
     ring.classList.toggle('break',mode!=='work');
-    statusEl.textContent=mode==='work'?'Фокус':mode==='short'?'Перерыв':'Длинный перерыв';
+    const label=mode==='work'?'Фокус':mode==='short'?'Перерыв':'Длинный перерыв';
+    statusEl.textContent=label;
     playBtn.textContent=running?'⏸':'▶';
     fab.classList.toggle('active',running&&mode==='work');
+    // Таймер в заголовке вкладки
+    document.title=running?(fmt(secs)+' 🍅 '+label):origTitle;
+    // Таймер на кнопке 🍅 когда свёрнуто
+    fab.textContent=running?fmt(secs):'🍅';
     renderDots();
   }
 
@@ -1060,14 +1071,23 @@ window.history.pushState({}, '');
     try{navigator.vibrate&&navigator.vibrate([200,100,200,100,200]);}catch(e){}
   }
 
+  function notify(title,body){
+    try{
+      if('Notification' in window && Notification.permission==='granted'){
+        new Notification(title,{body:body,icon:'🍅',tag:'pomo',requireInteraction:true});
+      }
+    }catch(e){}
+  }
+
   function onComplete(){
     running=false;clearInterval(timer);timer=null;endAt=null;
     beep();
     if(mode==='work'){
+      notify('🍅 Помодоро завершён!','Время перерыва. Встань, попей воды.');
       count++;
       if(count>=TOTAL){mode='long';secs=LONG;total=LONG;count=0;}
       else{mode='short';secs=SHORT;total=SHORT;}
-    }else{mode='work';secs=WORK;total=WORK;}
+    }else{mode='work';secs=WORK;total=WORK;notify('⚡ Перерыв окончен!','Время работать. Фокус.');}
     updateUI();save();
     setTimeout(()=>{if(!running)pomoPlayPause();},1500);
   }

@@ -212,6 +212,24 @@ html,body{background:var(--bg);color:var(--text);font-family:-apple-system,Blink
   <div id="habitList" class="habit-list"></div>
 </div>
 
+<!-- ===== CONTROL VIEW ===== -->
+<div id="control-view" class="tab-view">
+  <div class="page-header">
+    <div class="page-title">⚙️ Контроль</div>
+  </div>
+  <div style="padding:0 16px">
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">iPhone режимы → тапни кнопку</div>
+    <div id="controlGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+    <div style="margin-top:20px;font-size:12px;color:var(--text2);padding:12px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">
+      <strong style="color:var(--accent2)">💡 Как это работает</strong><br><br>
+      1. Кнопки запускают Shortcuts на iPhone<br>
+      2. Molt отправляет кнопки в Telegram когда нужно<br>
+      3. Автоматизации работают по расписанию<br><br>
+      <strong style="color:var(--text)">Первый раз:</strong> создай шорткаты (Molt скажет как)
+    </div>
+  </div>
+</div>
+
 <!-- ===== DETAIL VIEW ===== -->
 <div id="detail-view">
   <div class="detail-header">
@@ -234,6 +252,10 @@ html,body{background:var(--bg);color:var(--text);font-family:-apple-system,Blink
   <div class="tab" onclick="switchTab('habits')">
     <div class="t-icon">📋</div>
     <div class="t-label">Привычки</div>
+  </div>
+  <div class="tab" onclick="switchTab('control')">
+    <div class="t-icon">⚙️</div>
+    <div class="t-label">Контроль</div>
   </div>
 </nav>
 
@@ -413,9 +435,10 @@ function switchTab(tab){
   document.querySelectorAll('.tab-view').forEach(v=>v.classList.remove('active'));
   document.getElementById(tab+'-view').classList.add('active');
   document.querySelectorAll('.tab-bar .tab').forEach((t,i)=>{
-    const tabs=['knowledge','tasks','habits'];
+    const tabs=['knowledge','tasks','habits','control'];
     t.classList.toggle('active',tabs[i]===tab);
   });
+  if(tab==='control')renderControl();
   if(tab==='habits')renderHabits();
   if(tab==='tasks')renderTasks();
 }
@@ -423,7 +446,7 @@ function switchTab(tab){
 // ============================================================
 // TASKS (managed by Molt, not user)
 // ============================================================
-const USER_DATA = {"habits":[{"name":"Помодоро сессия","icon":"🍅"},{"name":"Тренировка","icon":"💪"},{"name":"Английский (VR чат)","icon":"🇬🇧"},{"name":"Чтение 30 мин","icon":"📖"},{"name":"Медитация 5 мин","icon":"🧘"},{"name":"Вода 2л","icon":"💧"},{"name":"Режим сна","icon":"😴"}],"tasks":[{"text":"Настроить платформу Карта власти","priority":"high"},{"text":"Определить 3 цели на февраль","priority":"high"},{"text":"Выбрать первый навык для монетизации","priority":"high"},{"text":"Сделать первый помодоро цикл (4×25 мин)","priority":"medium"},{"text":"Прочитать 00 Великая стратегия","priority":"medium"},{"text":"Попробовать VR чат для английского","priority":"medium"},{"text":"Записать утреннюю рутину","priority":"low"}]};
+const USER_DATA = {"habits":[{"name":"Помодоро сессия","icon":"🍅"},{"name":"Тренировка","icon":"💪"},{"name":"Английский (VR чат)","icon":"🇬🇧"},{"name":"Чтение 30 мин","icon":"📖"},{"name":"Медитация 5 мин","icon":"🧘"},{"name":"Вода 2л","icon":"💧"},{"name":"Режим сна","icon":"😴"}],"tasks":[{"text":"Настроить платформу Карта власти","priority":"high"},{"text":"Определить 3 цели на февраль","priority":"high"},{"text":"Выбрать первый навык для монетизации","priority":"high"},{"text":"Сделать первый помодоро цикл (4×25 мин)","priority":"medium"},{"text":"Прочитать 00 Великая стратегия","priority":"medium"},{"text":"Попробовать VR чат для английского","priority":"medium"},{"text":"Записать утреннюю рутину","priority":"low"},{"text":"Создать шорткаты на iPhone для Molt","priority":"high"}],"shortcuts":[{"name":"Фокус","icon":"🎯","shortcut":"Фокус","color":"#7c3aed","desc":"Режим работы"},{"name":"Фокус ВЫКЛ","icon":"🔓","shortcut":"Фокус выкл","color":"#6b7280","desc":"Отключить фокус"},{"name":"Не беспокоить","icon":"🔕","shortcut":"Не беспокоить","color":"#3b82f6","desc":"DND"},{"name":"Режим сна","icon":"😴","shortcut":"Режим сна","color":"#8b5cf6","desc":"Подготовка ко сну"},{"name":"Таймер 25м","icon":"⏱️","shortcut":"Таймер 25","color":"#ef4444","desc":"Помодоро оффлайн"},{"name":"Яркость мин","icon":"🔅","shortcut":"Яркость мин","color":"#f59e0b","desc":"Минимум яркости"}]};
 let tasks=[];
 const TASKS_KEY='tasks_v2';
 
@@ -522,6 +545,29 @@ function renderHabits(){
 }
 
 window.habitCheck=function(i){const t=todayStr();if(!habits[i].log)habits[i].log={};if(habits[i].log[t])delete habits[i].log[t];else habits[i].log[t]=1;saveHabits();renderHabits();};
+
+// ============================================================
+// CONTROL (iPhone Shortcuts)
+// ============================================================
+const SHORTCUTS=(USER_DATA&&USER_DATA.shortcuts)||[
+  {name:'Фокус',icon:'🎯',shortcut:'Фокус',color:'#7c3aed',desc:'Режим работы'},
+  {name:'Фокус ВЫКЛ',icon:'🔓',shortcut:'Фокус выкл',color:'#6b7280',desc:'Отключить фокус'},
+  {name:'Не беспокоить',icon:'🔕',shortcut:'Не беспокоить',color:'#3b82f6',desc:'DND'},
+  {name:'Режим сна',icon:'😴',shortcut:'Режим сна',color:'#8b5cf6',desc:'Подготовка ко сну'},
+  {name:'Таймер 25м',icon:'⏱️',shortcut:'Таймер 25',color:'#ef4444',desc:'Помодоро оффлайн'},
+  {name:'Яркость мин',icon:'🔅',shortcut:'Яркость мин',color:'#f59e0b',desc:'Минимум яркости'}
+];
+
+function renderControl(){
+  const grid=document.getElementById('controlGrid');
+  grid.innerHTML=SHORTCUTS.map(s=>`
+    <a href="shortcuts://run-shortcut?name=${encodeURIComponent(s.shortcut)}" style="text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 12px;background:var(--card);border-radius:14px;border:1px solid var(--border);-webkit-tap-highlight-color:transparent">
+      <div style="width:48px;height:48px;border-radius:14px;background:${s.color}22;display:flex;align-items:center;justify-content:center;font-size:24px">${s.icon}</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);text-align:center">${s.name}</div>
+      <div style="font-size:10px;color:var(--text2)">${s.desc}</div>
+    </a>
+  `).join('');
+}
 
 // ============================================================
 // POMODORO

@@ -446,35 +446,48 @@ function switchTab(tab){
 // ============================================================
 // TASKS (managed by Molt, not user)
 // ============================================================
-const USER_DATA = {"habits":[{"name":"Помодоро сессия","icon":"🍅"},{"name":"Тренировка","icon":"💪"},{"name":"Английский (VR чат)","icon":"🇬🇧"},{"name":"Чтение 30 мин","icon":"📖"},{"name":"Медитация 5 мин","icon":"🧘"},{"name":"Вода 2л","icon":"💧"},{"name":"Режим сна","icon":"😴"}],"tasks":[{"text":"Настроить платформу Карта власти","priority":"high"},{"text":"Определить 3 цели на февраль","priority":"high"},{"text":"Выбрать первый навык для монетизации","priority":"high"},{"text":"Сделать первый помодоро цикл (4×25 мин)","priority":"medium"},{"text":"Прочитать 00 Великая стратегия","priority":"medium"},{"text":"Попробовать VR чат для английского","priority":"medium"},{"text":"Записать утреннюю рутину","priority":"low"},{"text":"Создать шорткаты на iPhone для Molt","priority":"high"}],"shortcuts":[{"name":"Фокус","icon":"🎯","shortcut":"Фокус","color":"#7c3aed","desc":"Режим работы"},{"name":"Фокус ВЫКЛ","icon":"🔓","shortcut":"Фокус выкл","color":"#6b7280","desc":"Отключить фокус"},{"name":"Не беспокоить","icon":"🔕","shortcut":"Не беспокоить","color":"#3b82f6","desc":"DND"},{"name":"Режим сна","icon":"😴","shortcut":"Режим сна","color":"#8b5cf6","desc":"Подготовка ко сну"},{"name":"Таймер 25м","icon":"⏱️","shortcut":"Таймер 25","color":"#ef4444","desc":"Помодоро оффлайн"},{"name":"Яркость мин","icon":"🔅","shortcut":"Яркость мин","color":"#f59e0b","desc":"Минимум яркости"}]};
+const USER_DATA = {"habits":[{"name":"Помодоро сессия","icon":"🍅"},{"name":"Тренировка","icon":"💪"},{"name":"Английский (VR чат)","icon":"🇬🇧"},{"name":"Чтение 30 мин","icon":"📖"},{"name":"Медитация 5 мин","icon":"🧘"},{"name":"Вода 2л","icon":"💧"},{"name":"Режим сна","icon":"😴"}],"tasks":{"today":[{"text":"X5 проект — доделать приложение","priority":"high"}],"tomorrow":[{"text":"Определить 3 цели на февраль","priority":"high"},{"text":"Сделать первый помодоро цикл (4×25 мин)","priority":"medium"},{"text":"Прочитать 00 Великая стратегия","priority":"medium"}],"week":[{"text":"Выбрать первый навык для монетизации","priority":"high"},{"text":"Попробовать VR чат для английского","priority":"medium"},{"text":"Записать утреннюю рутину","priority":"low"}],"nextWeek":[{"text":"Создать шорткаты на iPhone для Molt","priority":"medium"},{"text":"Настроить автоматизации (фокус по расписанию)","priority":"medium"},{"text":"Начать вести трекер привычек каждый день","priority":"high"}],"month":[{"text":"100 алгоритмов в Карте власти","priority":"high"},{"text":"Первый доход с навыка ($100)","priority":"high"},{"text":"Карта власти как продукт — MVP","priority":"high"},{"text":"Стабильный режим дня 30 дней","priority":"medium"}]},"shortcuts":[{"name":"Фокус","icon":"🎯","shortcut":"Фокус","color":"#7c3aed","desc":"Режим работы"},{"name":"Фокус ВЫКЛ","icon":"🔓","shortcut":"Фокус выкл","color":"#6b7280","desc":"Отключить фокус"},{"name":"Не беспокоить","icon":"🔕","shortcut":"Не беспокоить","color":"#3b82f6","desc":"DND"},{"name":"Режим сна","icon":"😴","shortcut":"Режим сна","color":"#8b5cf6","desc":"Подготовка ко сну"},{"name":"Таймер 25м","icon":"⏱️","shortcut":"Таймер 25","color":"#ef4444","desc":"Помодоро оффлайн"},{"name":"Яркость мин","icon":"🔅","shortcut":"Яркость мин","color":"#f59e0b","desc":"Минимум яркости"}]};
 let tasks=[];
 const TASKS_KEY='tasks_v2';
 
+const SECTION_LABELS={today:'📌 Сегодня',tomorrow:'🌅 Завтра',week:'📆 Эта неделя',nextWeek:'🗓️ Следующая неделя',month:'🎯 Февраль'};
+const SECTION_ORDER=['today','tomorrow','week','nextWeek','month'];
+
 function loadTasks(){
-  // Merge: data.json tasks + localStorage completion state
-  const defaults=(USER_DATA&&USER_DATA.tasks)||[];
+  const raw=(USER_DATA&&USER_DATA.tasks)||{};
   let saved={};
   try{const r=localStorage.getItem(TASKS_KEY);if(r)saved=JSON.parse(r);}catch(e){}
 
-  tasks=defaults.map(t=>{
-    const key=t.text;
-    return{text:t.text,priority:t.priority||'medium',done:!!saved[key]};
-  });
+  // Support both array (old) and object (new) format
+  if(Array.isArray(raw)){
+    tasks=[{section:'today',items:raw.map(t=>({text:t.text,priority:t.priority||'medium',done:!!saved[t.text]}))}];
+  } else {
+    tasks=SECTION_ORDER.filter(s=>raw[s]&&raw[s].length).map(s=>({
+      section:s,
+      items:raw[s].map(t=>({text:t.text,priority:t.priority||'medium',done:!!saved[t.text]}))
+    }));
+  }
 }
 function saveTasks(){
   const state={};
-  tasks.forEach(t=>{if(t.done)state[t.text]=true;});
+  tasks.forEach(s=>s.items.forEach(t=>{if(t.done)state[t.text]=true;}));
   try{localStorage.setItem(TASKS_KEY,JSON.stringify(state));}catch(e){}
 }
 
 function renderTasks(){
-  const active=tasks.filter(t=>!t.done);
-  const done=tasks.filter(t=>t.done);
-  document.getElementById('taskCount').textContent=active.length+' активных';
+  let total=0,active=0;
+  tasks.forEach(s=>s.items.forEach(t=>{total++;if(!t.done)active++;}));
+  document.getElementById('taskCount').textContent=active+' активных';
   let html='';
-  if(active.length){active.forEach((t,i)=>{const idx=tasks.indexOf(t);html+=taskHTML(t,idx);});}
-  if(done.length){html+=`<div class="task-section-label">✓ Выполнено (${done.length})</div>`;done.forEach(t=>{const idx=tasks.indexOf(t);html+=taskHTML(t,idx);});}
-  if(!tasks.length)html='<div class="empty"><div class="empty-icon">✅</div>Задач нет<br><span style="color:var(--text2);font-size:13px">Molt добавит когда нужно</span></div>';
+  let globalIdx=0;
+  for(const section of tasks){
+    html+=`<div class="task-section-label">${SECTION_LABELS[section.section]||section.section}</div>`;
+    for(const t of section.items){
+      html+=taskHTML(t,globalIdx);
+      globalIdx++;
+    }
+  }
+  if(!total)html='<div class="empty"><div class="empty-icon">✅</div>Задач нет<br><span style="color:var(--text2);font-size:13px">Molt добавит когда нужно</span></div>';
   document.getElementById('taskList').innerHTML=html;
 }
 
@@ -483,7 +496,10 @@ function taskHTML(t,i){
   return`<div class="task-item${t.done?' done':''}" onclick="taskToggle(${i})"><div class="task-check">${t.done?'✓':''}</div><div class="task-text">${prio} ${escapeHtml(t.text)}</div></div>`;
 }
 
-window.taskToggle=function(i){tasks[i].done=!tasks[i].done;saveTasks();renderTasks();};
+window.taskToggle=function(i){
+  let idx=0;
+  for(const s of tasks){for(const t of s.items){if(idx===i){t.done=!t.done;saveTasks();renderTasks();return;}idx++;}}
+};
 
 // ============================================================
 // HABITS (managed by Molt, not user)

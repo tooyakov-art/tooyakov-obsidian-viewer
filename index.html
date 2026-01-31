@@ -985,42 +985,52 @@ window.history.pushState({}, '');
 
 <script>
 (function(){
-  const WORK = 25*60, SHORT = 5*60, LONG = 20*60, TOTAL = 4;
-  const C = 2 * Math.PI * 38;
-  const ring = document.getElementById('pomoRing');
-  const timeEl = document.getElementById('pomoTime');
-  const statusEl = document.getElementById('pomoStatus');
-  const playBtn = document.getElementById('pomoPlay');
-  const dotsEl = document.getElementById('pomoDots');
-  const fab = document.getElementById('pomoFab');
-  const panel = document.getElementById('pomoPanel');
+  const WORK=25*60, SHORT=5*60, LONG=20*60, TOTAL=4;
+  const C=2*Math.PI*38;
+  const ring=document.getElementById('pomoRing');
+  const timeEl=document.getElementById('pomoTime');
+  const statusEl=document.getElementById('pomoStatus');
+  const playBtn=document.getElementById('pomoPlay');
+  const dotsEl=document.getElementById('pomoDots');
+  const fab=document.getElementById('pomoFab');
+  const panel=document.getElementById('pomoPanel');
+  ring.style.strokeDasharray=C;
+  ring.style.strokeDashoffset=0;
 
-  ring.style.strokeDasharray = C;
-  ring.style.strokeDashoffset = 0;
+  let mode='work', secs=WORK, total=WORK, running=false, timer=null, count=0;
+  let endAt=null; // timestamp когда таймер закончится
 
-  let mode = 'work'; // work | short | long
-  let secs = WORK;
-  let total = WORK;
-  let running = false;
-  let timer = null;
-  let count = 0; // completed pomodoros
+  function save(){
+    localStorage.setItem('pomo',JSON.stringify({mode,secs,total,running,count,endAt}));
+  }
+  function load(){
+    try{
+      const d=JSON.parse(localStorage.getItem('pomo'));
+      if(!d)return;
+      mode=d.mode||'work'; total=d.total||WORK; count=d.count||0;
+      if(d.running && d.endAt){
+        const left=Math.round((d.endAt-Date.now())/1000);
+        if(left>0){ secs=left; running=false; endAt=d.endAt; startTimer(); return; }
+        else { onComplete(); return; }
+      } else { secs=d.secs||WORK; running=false; endAt=null; }
+    }catch(e){}
+  }
 
-  function fmt(s){ return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+  function fmt(s){s=Math.max(0,s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 
   function renderDots(){
-    let h='';
-    for(let i=0;i<TOTAL;i++) h+='<div class="pomo-dot'+(i<count?' done':'')+'"></div>';
+    let h='';for(let i=0;i<TOTAL;i++)h+='<div class="pomo-dot'+(i<count?' done':'')+'"></div>';
     dotsEl.innerHTML=h;
   }
 
   function updateUI(){
-    timeEl.textContent = fmt(secs);
-    const pct = 1 - secs/total;
-    ring.style.strokeDashoffset = C - pct*C;
-    ring.classList.toggle('break', mode!=='work');
-    statusEl.textContent = mode==='work'?'Фокус':mode==='short'?'Перерыв':'Длинный перерыв';
-    playBtn.textContent = running?'⏸':'▶';
-    fab.classList.toggle('active', running && mode==='work');
+    timeEl.textContent=fmt(secs);
+    const pct=1-secs/total;
+    ring.style.strokeDashoffset=C-pct*C;
+    ring.classList.toggle('break',mode!=='work');
+    statusEl.textContent=mode==='work'?'Фокус':mode==='short'?'Перерыв':'Длинный перерыв';
+    playBtn.textContent=running?'⏸':'▶';
+    fab.classList.toggle('active',running&&mode==='work');
     renderDots();
   }
 
@@ -1039,25 +1049,48 @@ window.history.pushState({}, '');
     try{navigator.vibrate&&navigator.vibrate([200,100,200,100,200]);}catch(e){}
   }
 
+  function onComplete(){
+    running=false;clearInterval(timer);timer=null;endAt=null;
+    beep();
+    if(mode==='work'){
+      count++;
+      if(count>=TOTAL){mode='long';secs=LONG;total=LONG;count=0;}
+      else{mode='short';secs=SHORT;total=SHORT;}
+    }else{mode='work';secs=WORK;total=WORK;}
+    updateUI();save();
+    setTimeout(()=>{if(!running)pomoPlayPause();},1500);
+  }
+
   function tick(){
-    if(secs<=0){
-      running=false;clearInterval(timer);timer=null;
-      beep();
-      if(mode==='work'){
-        count++;
-        if(count>=TOTAL){ mode='long'; secs=LONG; total=LONG; count=0; }
-        else { mode='short'; secs=SHORT; total=SHORT; }
-      } else {
-        mode='work'; secs=WORK; total=WORK;
-      }
-      updateUI();
-      // auto-start next
-      setTimeout(()=>{ if(!running) pomoPlayPause(); }, 1500);
-      return;
-    }
-    secs--;
+    if(!endAt)return;
+    const left=Math.round((endAt-Date.now())/1000);
+    if(left<=0){onComplete();return;}
+    secs=left;
     updateUI();
   }
+
+  function startTimer(){
+    if(!endAt)endAt=Date.now()+secs*1000;
+    running=true;
+    clearInterval(timer);
+    timer=setInterval(tick,250); // 250ms для точности после возврата из фона
+    updateUI();save();
+  }
+
+  function stopTimer(){
+    running=false;clearInterval(timer);timer=null;
+    if(endAt){secs=Math.max(0,Math.round((endAt-Date.now())/1000));endAt=null;}
+    updateUI();save();
+  }
+
+  // При возврате на страницу — пересчитать время
+  document.addEventListener('visibilitychange',function(){
+    if(!document.hidden && running && endAt){
+      const left=Math.round((endAt-Date.now())/1000);
+      if(left<=0){onComplete();}
+      else{secs=left;updateUI();}
+    }
+  });
 
   window.pomoToggle=function(){
     const open=panel.classList.toggle('open');
@@ -1065,28 +1098,24 @@ window.history.pushState({}, '');
   };
 
   window.pomoPlayPause=function(){
-    if(running){running=false;clearInterval(timer);timer=null;}
-    else{running=true;timer=setInterval(tick,1000);}
-    updateUI();
+    if(running){stopTimer();}
+    else{startTimer();}
   };
 
   window.pomoResetFn=function(){
-    running=false;clearInterval(timer);timer=null;
+    running=false;clearInterval(timer);timer=null;endAt=null;
     mode='work';secs=WORK;total=WORK;count=0;
-    updateUI();
+    updateUI();save();
   };
 
   window.pomoSkipFn=function(){
-    running=false;clearInterval(timer);timer=null;
-    if(mode==='work'){
-      count++;
-      if(count>=TOTAL){mode='long';secs=LONG;total=LONG;count=0;}
-      else{mode='short';secs=SHORT;total=SHORT;}
-    } else { mode='work';secs=WORK;total=WORK; }
-    updateUI();
+    running=false;clearInterval(timer);timer=null;endAt=null;
+    if(mode==='work'){count++;if(count>=TOTAL){mode='long';secs=LONG;total=LONG;count=0;}else{mode='short';secs=SHORT;total=SHORT;}}
+    else{mode='work';secs=WORK;total=WORK;}
+    updateUI();save();
   };
 
-  updateUI();
+  load();updateUI();
 })();
 </script>
 </body>

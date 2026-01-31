@@ -12,6 +12,12 @@
 html,body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 
 /* TAB BAR */
+.kb-col{min-width:140px;flex:1;background:var(--bg2);border-radius:10px;padding:8px;border:1px solid var(--border)}
+.kb-col-head{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;padding:0 2px}
+.kb-card{background:var(--card);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;line-height:1.4;border-left:3px solid var(--accent);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.kb-card.done{opacity:0.5;text-decoration:line-through;border-left-color:var(--green)}
+.kb-card .kb-prio{font-size:9px;margin-top:3px;color:var(--text2)}
+
 .tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(10,10,15,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;padding:6px 0;padding-bottom:max(6px,env(safe-area-inset-bottom))}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color 0.15s}
 .tab .t-icon{font-size:22px}
@@ -194,6 +200,15 @@ html,body{background:var(--bg);color:var(--text);font-family:-apple-system,Blink
     <div class="page-title">✅ Задачи</div>
     <div class="page-count" id="taskCount"></div>
   </div>
+  <!-- February Goals Kanban -->
+  <div id="febGoals" style="padding:0 12px 12px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:16px;font-weight:700">🎯 Февраль 2026</span>
+      <span style="font-size:11px;color:var(--text2);background:var(--bg2);padding:2px 8px;border-radius:6px" id="febProgress"></span>
+    </div>
+    <div id="kanbanBoard" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch"></div>
+  </div>
+  <div style="padding:0 12px"><div style="height:1px;background:var(--border);margin-bottom:12px"></div></div>
   <div id="taskList" class="task-list"></div>
 </div>
 
@@ -459,7 +474,7 @@ function switchTab(tab){
   });
   if(tab==='control')renderControl();
   if(tab==='habits')renderHabits();
-  if(tab==='tasks')renderTasks();
+  if(tab==='tasks'){renderKanban();renderTasks();}
 }
 
 // ============================================================
@@ -468,6 +483,54 @@ function switchTab(tab){
 const USER_DATA = {"habits":[{"name":"Помодоро сессия","icon":"🍅"},{"name":"Тренировка","icon":"💪"},{"name":"Английский (VR чат)","icon":"🇬🇧"},{"name":"Чтение 30 мин","icon":"📖"},{"name":"Медитация 5 мин","icon":"🧘"},{"name":"Вода 2л","icon":"💧"},{"name":"Режим сна","icon":"😴"}],"tasks":{"today":[{"text":"X5 проект — доделать приложение","priority":"high"}],"tomorrow":[{"text":"Определить 3 цели на февраль","priority":"high"},{"text":"Сделать первый помодоро цикл (4×25 мин)","priority":"medium"},{"text":"Прочитать 00 Великая стратегия","priority":"medium"}],"week":[{"text":"Выбрать первый навык для монетизации","priority":"high"},{"text":"Попробовать VR чат для английского","priority":"medium"},{"text":"Записать утреннюю рутину","priority":"low"}],"nextWeek":[{"text":"Создать шорткаты на iPhone для Molt","priority":"medium"},{"text":"Настроить автоматизации (фокус по расписанию)","priority":"medium"},{"text":"Начать вести трекер привычек каждый день","priority":"high"}],"month":[{"text":"100 алгоритмов в Карте власти","priority":"high"},{"text":"Первый доход с навыка ($100)","priority":"high"},{"text":"Карта власти как продукт — MVP","priority":"high"},{"text":"Стабильный режим дня 30 дней","priority":"medium"}]},"shortcuts":[{"name":"Фокус","icon":"🎯","shortcut":"Фокус","color":"#7c3aed","desc":"Режим работы"},{"name":"Фокус ВЫКЛ","icon":"🔓","shortcut":"Фокус выкл","color":"#6b7280","desc":"Отключить фокус"},{"name":"Не беспокоить","icon":"🔕","shortcut":"Не беспокоить","color":"#3b82f6","desc":"DND"},{"name":"Режим сна","icon":"😴","shortcut":"Режим сна","color":"#8b5cf6","desc":"Подготовка ко сну"},{"name":"Таймер 25м","icon":"⏱️","shortcut":"Таймер 25","color":"#ef4444","desc":"Помодоро оффлайн"},{"name":"Яркость мин","icon":"🔅","shortcut":"Яркость мин","color":"#f59e0b","desc":"Минимум яркости"}]};
 let tasks=[];
 const TASKS_KEY='tasks_v2';
+
+// ============================================================
+// FEBRUARY KANBAN GOALS
+// ============================================================
+const FEB_GOALS_KEY='feb_goals_v1';
+const FEB_GOALS=[
+  {id:'habits28',text:'Трекер привычек — 28 дней подряд',col:'todo',prio:'🔴'},
+  {id:'skill1',text:'Выбрать 1 навык для заработка + первый проект',col:'todo',prio:'🔴'},
+  {id:'english15',text:'Английский — 15 дней VR чат (30 мин)',col:'todo',prio:'🔴'},
+  {id:'algo20',text:'Проверить 20 алгоритмов на практике',col:'todo',prio:'🟡'},
+  {id:'mentor1',text:'Найти 1 ментора-человека',col:'todo',prio:'🟡'},
+  {id:'morning',text:'Утренняя рутина каждый день',col:'todo',prio:'🟡'},
+  {id:'income100',text:'Первые $100 дохода',col:'todo',prio:'🟢'},
+  {id:'algo150',text:'150 алгоритмов в Obsidian',col:'todo',prio:'🟢'},
+];
+const KB_COLS=[
+  {id:'todo',label:'📋 Сделать',color:'var(--text2)'},
+  {id:'doing',label:'⚡ Делаю',color:'var(--yellow)'},
+  {id:'done',label:'✅ Готово',color:'var(--green)'},
+];
+
+function loadFebGoals(){
+  try{const s=localStorage.getItem(FEB_GOALS_KEY);if(s)return JSON.parse(s);}catch(e){}
+  return FEB_GOALS.map(g=>({...g}));
+}
+function saveFebGoals(goals){try{localStorage.setItem(FEB_GOALS_KEY,JSON.stringify(goals));}catch(e){}}
+
+function renderKanban(){
+  const goals=loadFebGoals();
+  const done=goals.filter(g=>g.col==='done').length;
+  document.getElementById('febProgress').textContent=done+'/'+goals.length+' выполнено';
+  const board=document.getElementById('kanbanBoard');
+  board.innerHTML=KB_COLS.map(col=>{
+    const items=goals.filter(g=>g.col===col.id);
+    return`<div class="kb-col"><div class="kb-col-head" style="color:${col.color}">${col.label} (${items.length})</div>${items.map(g=>`<div class="kb-card${g.col==='done'?' done':''}" onclick="cycleGoal('${g.id}')">${g.text}<div class="kb-prio">${g.prio} тапни → сдвинуть</div></div>`).join('')}</div>`;
+  }).join('');
+}
+
+window.cycleGoal=function(id){
+  const goals=loadFebGoals();
+  const g=goals.find(x=>x.id===id);
+  if(!g)return;
+  if(g.col==='todo')g.col='doing';
+  else if(g.col==='doing')g.col='done';
+  else g.col='todo';
+  saveFebGoals(goals);
+  renderKanban();
+};
 
 const SECTION_LABELS={today:'📌 Сегодня',tomorrow:'🌅 Завтра',week:'📆 Эта неделя',nextWeek:'🗓️ Следующая неделя',month:'🎯 Февраль'};
 const SECTION_ORDER=['today','tomorrow','week','nextWeek','month'];

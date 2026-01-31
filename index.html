@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi0JrQsNGA0YLQsCDQstC70LDRgdGC0LgiLCJzaG9ydF9uYW1lIjoi0JrQsNGA0YLQsCIsInN0YXJ0X3VybCI6Ii4vIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBhMGEwZiIsInRoZW1lX2NvbG9yIjoiIzBhMGEwZiJ9">
 <title>Карта власти</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1000,13 +1002,22 @@ window.history.pushState({}, '');
   let mode='work', secs=WORK, total=WORK, running=false, timer=null, count=0;
   let endAt=null; // timestamp когда таймер закончится
 
+  const STORE_KEY='pomo_v2';
   function save(){
-    localStorage.setItem('pomo',JSON.stringify({mode,secs,total,running,count,endAt}));
+    const data=JSON.stringify({mode,secs,total,running,count,endAt,ts:Date.now()});
+    try{localStorage.setItem(STORE_KEY,data);}catch(e){}
+    try{sessionStorage.setItem(STORE_KEY,data);}catch(e){}
+    // бэкап в cookie (Telegram in-app browser убивает localStorage)
+    try{document.cookie=STORE_KEY+'='+encodeURIComponent(data)+';max-age=86400;path=/;SameSite=Lax';}catch(e){}
   }
   function load(){
+    let raw=null;
+    try{raw=localStorage.getItem(STORE_KEY);}catch(e){}
+    if(!raw)try{raw=sessionStorage.getItem(STORE_KEY);}catch(e){}
+    if(!raw)try{const m=document.cookie.match(new RegExp(STORE_KEY+'=([^;]+)'));if(m)raw=decodeURIComponent(m[1]);}catch(e){}
+    if(!raw)return;
     try{
-      const d=JSON.parse(localStorage.getItem('pomo'));
-      if(!d)return;
+      const d=JSON.parse(raw);
       mode=d.mode||'work'; total=d.total||WORK; count=d.count||0;
       if(d.running && d.endAt){
         const left=Math.round((d.endAt-Date.now())/1000);
@@ -1083,14 +1094,18 @@ window.history.pushState({}, '');
     updateUI();save();
   }
 
-  // При возврате на страницу — пересчитать время
+  // Сохранять при любом уходе со страницы
   document.addEventListener('visibilitychange',function(){
-    if(!document.hidden && running && endAt){
+    if(document.hidden){save();}
+    else if(running && endAt){
       const left=Math.round((endAt-Date.now())/1000);
       if(left<=0){onComplete();}
       else{secs=left;updateUI();}
     }
   });
+  window.addEventListener('pagehide',function(){save();});
+  window.addEventListener('beforeunload',function(){save();});
+  window.addEventListener('freeze',function(){save();});
 
   window.pomoToggle=function(){
     const open=panel.classList.toggle('open');

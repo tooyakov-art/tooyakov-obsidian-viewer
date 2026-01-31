@@ -818,5 +818,276 @@ document.getElementById('search').addEventListener('input', (e) => {
 loadFiles();
 window.history.pushState({}, '');
 </script>
+
+<!-- POMODORO WIDGET -->
+<style>
+.pomo-fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 24px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.pomo-fab:active { transform: scale(0.9); }
+.pomo-fab.active { box-shadow: 0 0 20px rgba(124,58,237,0.4); border-color: var(--accent); }
+.pomo-fab.hidden { display: none; }
+
+.pomo-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  width: 180px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.pomo-panel.open { display: flex; }
+
+.pomo-close {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--text2);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.pomo-status {
+  font-size: 11px;
+  color: var(--accent2);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pomo-ring-wrap {
+  position: relative;
+  width: 90px;
+  height: 90px;
+}
+
+.pomo-ring-wrap svg {
+  width: 90px;
+  height: 90px;
+  transform: rotate(-90deg);
+}
+
+.pomo-ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 4;
+}
+
+.pomo-ring-fg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.pomo-ring-fg.break {
+  stroke: #4ade80;
+}
+
+.pomo-time {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pomo-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.pomo-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.pomo-btn:active { background: var(--card-hover); }
+.pomo-btn.primary { background: var(--accent); border-color: var(--accent); }
+.pomo-btn.primary:active { background: var(--accent2); }
+
+.pomo-counter {
+  font-size: 12px;
+  color: var(--text2);
+  display: flex;
+  gap: 4px;
+}
+.pomo-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.pomo-dot.done { background: var(--accent); }
+.pomo-dot.brk { background: #4ade80; }
+</style>
+
+<div class="pomo-fab" id="pomoFab" onclick="pomoToggle()">🍅</div>
+<div class="pomo-panel" id="pomoPanel">
+  <button class="pomo-close" onclick="pomoToggle()">✕</button>
+  <div class="pomo-status" id="pomoStatus">Фокус</div>
+  <div class="pomo-ring-wrap">
+    <svg viewBox="0 0 90 90">
+      <circle class="pomo-ring-bg" cx="45" cy="45" r="38"/>
+      <circle class="pomo-ring-fg" id="pomoRing" cx="45" cy="45" r="38"/>
+    </svg>
+    <div class="pomo-time" id="pomoTime">25:00</div>
+  </div>
+  <div class="pomo-controls">
+    <button class="pomo-btn" id="pomoReset" onclick="pomoResetFn()" title="Сброс">↺</button>
+    <button class="pomo-btn primary" id="pomoPlay" onclick="pomoPlayPause()">▶</button>
+    <button class="pomo-btn" id="pomoSkip" onclick="pomoSkipFn()" title="Пропустить">⏭</button>
+  </div>
+  <div class="pomo-counter" id="pomoDots"></div>
+</div>
+
+<script>
+(function(){
+  const WORK = 25*60, SHORT = 5*60, LONG = 20*60, TOTAL = 4;
+  const C = 2 * Math.PI * 38;
+  const ring = document.getElementById('pomoRing');
+  const timeEl = document.getElementById('pomoTime');
+  const statusEl = document.getElementById('pomoStatus');
+  const playBtn = document.getElementById('pomoPlay');
+  const dotsEl = document.getElementById('pomoDots');
+  const fab = document.getElementById('pomoFab');
+  const panel = document.getElementById('pomoPanel');
+
+  ring.style.strokeDasharray = C;
+  ring.style.strokeDashoffset = 0;
+
+  let mode = 'work'; // work | short | long
+  let secs = WORK;
+  let total = WORK;
+  let running = false;
+  let timer = null;
+  let count = 0; // completed pomodoros
+
+  function fmt(s){ return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+
+  function renderDots(){
+    let h='';
+    for(let i=0;i<TOTAL;i++) h+='<div class="pomo-dot'+(i<count?' done':'')+'"></div>';
+    dotsEl.innerHTML=h;
+  }
+
+  function updateUI(){
+    timeEl.textContent = fmt(secs);
+    const pct = 1 - secs/total;
+    ring.style.strokeDashoffset = C - pct*C;
+    ring.classList.toggle('break', mode!=='work');
+    statusEl.textContent = mode==='work'?'Фокус':mode==='short'?'Перерыв':'Длинный перерыв';
+    playBtn.textContent = running?'⏸':'▶';
+    fab.classList.toggle('active', running && mode==='work');
+    renderDots();
+  }
+
+  function beep(){
+    try{
+      const ac=new(window.AudioContext||window.webkitAudioContext)();
+      [0,0.15,0.3].forEach(d=>{
+        const o=ac.createOscillator(),g=ac.createGain();
+        o.connect(g);g.connect(ac.destination);
+        o.frequency.value=880;o.type='sine';
+        g.gain.setValueAtTime(0.3,ac.currentTime+d);
+        g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+d+0.12);
+        o.start(ac.currentTime+d);o.stop(ac.currentTime+d+0.12);
+      });
+    }catch(e){}
+    try{navigator.vibrate&&navigator.vibrate([200,100,200,100,200]);}catch(e){}
+  }
+
+  function tick(){
+    if(secs<=0){
+      running=false;clearInterval(timer);timer=null;
+      beep();
+      if(mode==='work'){
+        count++;
+        if(count>=TOTAL){ mode='long'; secs=LONG; total=LONG; count=0; }
+        else { mode='short'; secs=SHORT; total=SHORT; }
+      } else {
+        mode='work'; secs=WORK; total=WORK;
+      }
+      updateUI();
+      // auto-start next
+      setTimeout(()=>{ if(!running) pomoPlayPause(); }, 1500);
+      return;
+    }
+    secs--;
+    updateUI();
+  }
+
+  window.pomoToggle=function(){
+    const open=panel.classList.toggle('open');
+    fab.classList.toggle('hidden',open);
+  };
+
+  window.pomoPlayPause=function(){
+    if(running){running=false;clearInterval(timer);timer=null;}
+    else{running=true;timer=setInterval(tick,1000);}
+    updateUI();
+  };
+
+  window.pomoResetFn=function(){
+    running=false;clearInterval(timer);timer=null;
+    mode='work';secs=WORK;total=WORK;count=0;
+    updateUI();
+  };
+
+  window.pomoSkipFn=function(){
+    running=false;clearInterval(timer);timer=null;
+    if(mode==='work'){
+      count++;
+      if(count>=TOTAL){mode='long';secs=LONG;total=LONG;count=0;}
+      else{mode='short';secs=SHORT;total=SHORT;}
+    } else { mode='work';secs=WORK;total=WORK; }
+    updateUI();
+  };
+
+  updateUI();
+})();
+</script>
 </body>
 </html>

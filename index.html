@@ -1097,6 +1097,19 @@ const isTelegramWebView = /Telegram/i.test(navigator.userAgent) || window.Telegr
     return s;
   }
 
+  // Поиск алгоритма по названию привычки
+  function findAlgo(name){
+    const q=name.toLowerCase();
+    // Ищем "как [привычка]" или "как выучить [привычка]" и т.д.
+    return flatFiles.find(f=>{
+      const n=f.name.toLowerCase();
+      if(n.includes(q))return true;
+      // Ключевые слова из привычки
+      const words=q.split(/\s+/).filter(w=>w.length>3);
+      return words.length>0&&words.some(w=>n.includes(w));
+    });
+  }
+
   function render(){
     const t=today();
     const days7=last7();
@@ -1113,10 +1126,12 @@ const isTelegramWebView = /Telegram/i.test(navigator.userAgent) || window.Telegr
       const s=streak(h);
       let dots='';
       days7.forEach(d=>{dots+='<div class="habit-dot'+(h.log[d]?' done':'')+'"></div>';});
+      const algo=findAlgo(h.name);
+      const link=algo?` <span style="color:var(--accent2);font-size:11px" onclick="event.stopPropagation();openFile('${esc(algo.section)}','${esc(algo.name)}');habitToggle()">→ алгоритм</span>`:'';
       html+=`<div class="habit-row${isDone?' done':''}" onclick="habitCheck(${i})">
         <div class="habit-check">${isDone?'✓':''}</div>
         <div class="habit-info">
-          <div class="habit-name">${esc(h.name)}</div>
+          <div class="habit-name">${esc(h.name)}${link}</div>
           <div style="display:flex;align-items:center;gap:8px">
             <div class="habit-streak">${s>0?'🔥 <strong>'+s+'</strong> дн':'—'}</div>
             <div class="habit-dots">${dots}</div>

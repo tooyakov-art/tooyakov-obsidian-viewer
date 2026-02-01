@@ -203,7 +203,7 @@ html,body{background:var(--bg);color:var(--text);font-family:-apple-system,Blink
 </div>
 <script>
 // SHA-256 hash of password
-const PW_HASH='08e4550a8bb5114285a41ba2dd79cc63b4cdfe774cc9ecc82bf1566f84ffe0de';
+const PW_HASH='796c13f2eb2bef35e8899555451745af6b7f9d932bbd00833c47a7acd6659ace';
 function sha256(s){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)).then(b=>Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join(''));}
 function checkPw(){
   const v=document.getElementById('pw-input').value;
